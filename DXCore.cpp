@@ -1,6 +1,8 @@
 #include "DXCore.h"
 #include "Input.h"
 
+#include "imgui.h"
+
 #include <WindowsX.h>
 #include <sstream>
 
@@ -671,6 +673,11 @@ LRESULT DXCore::ProcessMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	// Has the mouse wheel been scrolled?
 	case WM_MOUSEWHEEL:
 		Input::GetInstance().SetWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+		return 0;
+
+	// Has a key been pressed?
+	case WM_CHAR:
+		ImGui::GetIO().AddInputCharacter((char)wParam);
 		return 0;
 	
 	// Is our focus state changing?

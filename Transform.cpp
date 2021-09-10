@@ -15,6 +15,8 @@ Transform::Transform()
 
 	// No need to recalc yet
 	matricesDirty = false;
+
+	parent = NULL(0);
 }
 
 void Transform::MoveAbsolute(float x, float y, float z)
@@ -99,6 +101,79 @@ DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix()
 	return worldMatrix;
 }
 
+void Transform::AddChild(Transform* child)
+{
+	// If the newly added child is null or 
+	// is already in the list, nothing happens
+	if (child == NULL(0))
+		return;
+
+	for (int i = 0; i < children.size(); i++) {
+		if (children[i] == child)
+			return;
+	}
+	
+	// Add the new child
+	children.push_back(child);
+
+	// Set the new child's parent
+	child->parent = this;
+
+	MarkChildTransformDirty();
+}
+
+void Transform::RemoveChild(Transform* child)
+{
+	children.erase(children.begin() + IndexOfChild(child));
+
+	MarkChildTransformDirty();
+}
+
+void Transform::SetParent(Transform* newParent)
+{
+	// Sets new parent
+	parent = newParent;
+
+	// If the new parent is not null, add *this* Transform to its list of children
+	if (newParent != NULL(0)) {
+		newParent->AddChild(this);
+		this->matricesDirty = true;
+	}
+
+	MarkChildTransformDirty();
+}
+
+Transform* Transform::GetParent()
+{
+	return parent;
+}
+
+Transform* Transform::GetChild(unsigned int index)
+{
+	// Returns null(0) if the index is out of bounds of the children vector
+	if (index < 0 || index >= children.size())
+		return NULL(0);
+	
+	return children[index];
+}
+
+int Transform::IndexOfChild(Transform* child)
+{
+	// Loops through the child vector and returns the index if one matches
+	for (int i = 0; i < children.size(); i++) {
+		if (children[i] == child)
+			return i;
+	}
+
+	// Otherwise returns -1
+	return -1;
+}
+
+unsigned int Transform::GetChildCount()
+{
+	return children.size();
+}
+
 void Transform::UpdateMatrices()
 {
 	// Are the matrices out of date (dirty)?
@@ -118,5 +193,14 @@ void Transform::UpdateMatrices()
 
 		// All set
 		matricesDirty = false;
+	}
+}
+
+void Transform::MarkChildTransformDirty()
+{
+	matricesDirty = true;
+	for (auto c : children)
+	{
+		c->MarkChildTransformDirty();
 	}
 }

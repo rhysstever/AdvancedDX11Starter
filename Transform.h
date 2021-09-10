@@ -1,6 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
+#include <vector>
 
 class Transform
 {
@@ -22,6 +23,14 @@ public:
 	DirectX::XMFLOAT4X4 GetWorldMatrix();
 	DirectX::XMFLOAT4X4 GetWorldInverseTransposeMatrix();
 
+	void AddChild(Transform* child);
+	void RemoveChild(Transform* child);
+	void SetParent(Transform* newParent);
+	Transform* GetParent();
+	Transform* GetChild(unsigned int index);
+	int IndexOfChild(Transform* child);
+	unsigned int GetChildCount();
+
 private:
 	// Raw transformation data
 	DirectX::XMFLOAT3 position;
@@ -33,7 +42,12 @@ private:
 	DirectX::XMFLOAT4X4 worldMatrix;
 	DirectX::XMFLOAT4X4 worldInverseTransposeMatrix;
 
+	Transform* parent;
+	std::vector<Transform*> children;
+
 	// Helper to update both matrices if necessary
 	void UpdateMatrices();
+
+	void MarkChildTransformDirty();
 };
 

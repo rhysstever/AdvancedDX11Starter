@@ -73,5 +73,9 @@ private:
 
 	// Initialization helper method
 	void LoadAssetsAndCreateEntities();
+	void GUISetup(float deltaTime);
+	void CreateGUI();
+	void DisplayEntityInfo(GameEntity* ge, int index);
+	void DisplayLightInfo(int index);
 };
 

@@ -40,6 +40,9 @@ public:
 	float GetMouseWheel();
 	void SetWheelDelta(float delta);
 
+	void SetGuiKeyboardCapture(bool capture) { guiWantsKeyboard = capture; }
+	void SetGuiMouseCapture(bool capture) { guiWantsMouse = capture; }
+
 	bool KeyDown(int key);
 	bool KeyUp(int key);
 
@@ -78,6 +81,9 @@ private:
 	int mouseXDelta;
 	int mouseYDelta;
 	float wheelDelta;
+
+	bool guiWantsKeyboard;
+	bool guiWantsMouse;
 
 	// The window's handle (id) from the OS, so
 	// we can get the cursor's position

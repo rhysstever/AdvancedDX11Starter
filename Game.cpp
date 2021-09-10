@@ -6,6 +6,10 @@
 #include "Vertex.h"
 #include "Input.h"
 
+#include "imgui.h"
+#include "imgui_impl_dx11.h"
+#include "imgui_impl_win32.h"
+
 #include "WICTextureLoader.h"
 
 
@@ -34,11 +38,11 @@ using namespace DirectX;
 // --------------------------------------------------------
 Game::Game(HINSTANCE hInstance)
 	: DXCore(
-		hInstance,		   // The application's handle
-		"DirectX Game",	   // Text for the window's title bar
-		1280,			   // Width of the window's client area
-		720,			   // Height of the window's client area
-		true)			   // Show extra stats (fps) in title bar?
+		hInstance,			// The application's handle
+		"DirectX Game",		// Text for the window's title bar
+		1280,				// Width of the window's client area
+		720,				// Height of the window's client area
+		true)				// Show extra stats (fps) in title bar?
 {
 	camera = 0;
 
@@ -60,6 +64,11 @@ Game::Game(HINSTANCE hInstance)
 // --------------------------------------------------------
 Game::~Game()
 {
+	// ImGui clean up
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
 	// Note: Since we're using smart pointers (ComPtr),
 	// we don't need to explicitly clean up those DirectX objects
 	// - If we weren't using smart pointers, we'd need
@@ -108,6 +117,17 @@ void Game::Init()
 		3.0f,		// Move speed
 		1.0f,		// Mouse look
 		this->width / (float)this->height); // Aspect ratio
+
+	// Initialize ImGui
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	// Pick a style (uncomment one of these 3)
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+	//ImGui::StyleColorsClassic();
+	// Setup Platform/Renderer backends
+	ImGui_ImplWin32_Init(hWnd);
+	ImGui_ImplDX11_Init(device.Get(), context.Get());
 }
 
 
@@ -339,7 +359,6 @@ void Game::LoadAssetsAndCreateEntities()
 	entities.push_back(roughSphere);
 	entities.push_back(woodSphere);
 
-
 	// Save assets needed for drawing point lights
 	// (Since these are just copies of the pointers,
 	//  we won't need to directly delete them as 
@@ -420,6 +439,8 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	GUISetup(deltaTime);
+
 	// Update the camera
 	camera->Update(deltaTime);
 
@@ -428,6 +449,7 @@ void Game::Update(float deltaTime, float totalTime)
 	if (input.KeyDown(VK_ESCAPE)) Quit();
 	if (input.KeyPress(VK_TAB)) GenerateLights();
 
+	CreateGUI();
 }
 
 // --------------------------------------------------------
@@ -476,6 +498,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Draw some UI
 	DrawUI();
 
+	// Draw ImGui
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
@@ -574,4 +599,234 @@ void Game::DrawUI()
 	context->OMSetBlendState(0, 0, 0xFFFFFFFF);
 	context->OMSetDepthStencilState(0, 0);
 
+}
+
+void Game::GUISetup(float deltaTime)
+{
+	Input& input = Input::GetInstance();
+	// Reset input manager's gui state so we don’t
+	// taint our own input (you’ll uncomment later)
+	input.SetGuiKeyboardCapture(false);
+	input.SetGuiMouseCapture(false);
+	// 
+	// Set io info
+	ImGuiIO& io = ImGui::GetIO();
+	io.DeltaTime = deltaTime;
+	io.DisplaySize.x = (float)this->width;
+	io.DisplaySize.y = (float)this->height;
+	io.KeyCtrl = input.KeyDown(VK_CONTROL);
+	io.KeyShift = input.KeyDown(VK_SHIFT);
+	io.KeyAlt = input.KeyDown(VK_MENU);
+	io.MousePos.x = (float)input.GetMouseX();
+	io.MousePos.y = (float)input.GetMouseY();
+	io.MouseDown[0] = input.MouseLeftDown();
+	io.MouseDown[1] = input.MouseRightDown();
+	io.MouseDown[2] = input.MouseMiddleDown();
+	io.MouseWheel=  input.GetMouseWheel();
+	input.GetKeyArray(io.KeysDown, 256);
+	
+	// Reset the frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui:: NewFrame();
+	// Determine new input capture (you’ll uncomment later)
+	input.SetGuiKeyboardCapture(io.WantCaptureKeyboard);
+	input.SetGuiMouseCapture(io.WantCaptureMouse);
+	// Show the demo window
+	ImGui:: ShowDemoWindow();
+}
+
+void Game::CreateGUI() 
+{
+	ImGuiIO& io = ImGui::GetIO();
+
+	// Stats Window
+	ImGui::Begin("Stats");
+	ImGui::Text("FPS: %i", (int)io.Framerate);
+	ImGui::Text("Window Width: %i", this->width);
+	ImGui::Text("Window Height: %i", this->height);
+	float aspectRatio = this->width / (float)this->height;
+	ImGui::Text("Aspect Ratio: %f", aspectRatio);
+	ImGui::Text("Number of Entities: %i", entities.size());
+	ImGui::Text("Number of Lights: %i", lightCount);
+	ImGui::End();
+
+	// Entities Window
+	ImGui::Begin("Elements");
+	int geIndex = 0;
+	if (ImGui::CollapsingHeader("Entities")) {
+		for (auto ge : entities) {
+			DisplayEntityInfo(ge, geIndex);
+			geIndex++;
+		}
+	}
+	if (ImGui::CollapsingHeader("Lights")) {
+		for (int i = 0; i < lightCount; i++) {
+			DisplayLightInfo(i);
+		}
+	}
+
+	ImGui::End();
+}
+
+void Game::DisplayEntityInfo(GameEntity* ge, int index)
+{
+	std::string iStr = std::to_string(index); 
+	std::string node = "Entity " + iStr; 
+	if (ImGui::TreeNode(node.c_str())) {
+		// Game Entity Position, Rotation, and Scale structure
+		// 
+		// "Header" name (Position, Rotation, or Scale)
+		// Get the current values from the ge
+		// Create the slider ID that is ge specific
+		// Create a float[4] for the slider using the current ge values
+		// Create the slider
+		// Set the new values of the ge
+		//
+
+		// Position
+		ImGui::Text("Position: ");
+		XMFLOAT3 gePos = ge->GetTransform()->GetPosition();
+		std::string gePosSliderName = "##GE" + iStr + "Pos";
+		float gePosSliderValues[4] = { gePos.x, gePos.y, gePos.z, 0.44f };
+		ImGui::SliderFloat3(gePosSliderName.c_str(), gePosSliderValues, -10.0f, 10.0f);
+		ge->GetTransform()->SetPosition(gePosSliderValues[0], gePosSliderValues[1], gePosSliderValues[2]);
+
+		// Rotation
+		ImGui::Text("Rotation: ");
+		XMFLOAT3 geRot = ge->GetTransform()->GetPitchYawRoll();
+		std::string geRotSliderName = "##GE" + iStr + "Rot";
+		float geRotSliderValues[4] = { geRot.x, geRot.y, geRot.z, 0.44f };
+		ImGui::SliderFloat3(geRotSliderName.c_str(), geRotSliderValues, -6.28, 6.28);
+		ge->GetTransform()->SetRotation(geRotSliderValues[0], geRotSliderValues[1], geRotSliderValues[2]);
+
+		// Scale
+		ImGui::Text("Scale: ");
+		XMFLOAT3 geScale = ge->GetTransform()->GetScale();
+		std::string geScaleSliderName = "##GE" + iStr + "Scale";
+		float geScaleSliderValues[4] = { geScale.x, geScale.y, geScale.z, 0.44f };
+		ImGui::SliderFloat3(geScaleSliderName.c_str(), geScaleSliderValues, 0.1, 5.0f);
+		ge->GetTransform()->SetScale(geScaleSliderValues[0], geScaleSliderValues[1], geScaleSliderValues[2]);
+		
+		ImGui::TreePop();
+	}
+}
+
+void Game::DisplayLightInfo(int index)
+{
+	std::string iStr = std::to_string(index);
+	std::string node = "Light " + iStr;
+	if (ImGui::TreeNode(node.c_str())) {
+		// Zero'd variables to (possibly) be used later in the switch statement
+		XMFLOAT3 lightDir = XMFLOAT3();
+		XMFLOAT3 lightPos = XMFLOAT3();
+		XMFLOAT3 newDir = XMFLOAT3();
+		XMFLOAT3 newPos = XMFLOAT3();
+		float range = 0.0f;
+
+		// Slider names & base values for position and direction
+		std::string lightDirSliderName = "##Light" + iStr + "Dir";
+		std::string lightPosSliderName = "##Light" + iStr + "Pos";
+		float lightDirSliderValues[4] = { 0.0f, 0.0f, 0.0f, 0.44f };
+		float lightPosSliderValues[4] = { 0.0f, 0.0f, 0.0f, 0.44f };
+		// Slider name & bounds for range
+		std::string lightRangeSliderName = "##Light" + iStr + "Range";
+		float f_five = 5.0f;
+		float f_ten = 10.0f;
+
+		// Light Color
+		XMFLOAT3 color = lights[index].Color;
+		std::string lightColorSliderName = "##Light" + iStr + "Color";
+		ImGui::ColorEdit4(lightColorSliderName.c_str(), &color.x);
+		lights[index].Color = color;
+
+		// Light Type
+		int lightType = lights[index].Type;
+
+		switch (lightType)
+		{
+		// Light Position or Direction or both structure
+		// 
+		// "Header" name (Position or Direction)
+		// Get the current values from the light
+		// Set new values for the float[4] for the slider using the light's (pos/dir) values
+		// Create the slider
+		// Set the values of the light
+		//
+		case 0:
+			ImGui::Text("Type: Directional");
+
+			// Direction
+			ImGui::Text("Direction: ");
+			lightDir = lights[index].Direction;
+			lightDirSliderValues[0] = lightDir.x;
+			lightDirSliderValues[1] = lightDir.y;
+			lightDirSliderValues[2] = lightDir.z;
+			ImGui::SliderFloat3(lightDirSliderName.c_str(), lightDirSliderValues, -1.0f, 1.0f);
+			newDir = XMFLOAT3(lightDirSliderValues[0], lightDirSliderValues[1], lightDirSliderValues[2]);
+			lights[index].Direction = newDir;
+
+			break;
+		case 1:
+			ImGui::Text("Type: Point");
+
+			// Position
+			ImGui::Text("Position: ");
+			lightPos = lights[index].Position;
+			lightPosSliderValues[0] = lightPos.x;
+			lightPosSliderValues[1] = lightPos.y;
+			lightPosSliderValues[2] = lightPos.z;
+			ImGui::SliderFloat3(lightPosSliderName.c_str(), lightPosSliderValues, -10.0f, 10.0f);
+			newPos = XMFLOAT3(lightPosSliderValues[0], lightPosSliderValues[1], lightPosSliderValues[2]);
+			lights[index].Position = newPos;
+
+			// Range
+			ImGui::Text("Range: ");
+			range = lights[index].Range;
+
+			// Slider creation
+			ImGui::SliderScalar(lightRangeSliderName.c_str(), ImGuiDataType_Float, &range, &f_five, &f_ten);
+			lights[index].Range = range;
+
+			break;
+		case 2:
+			ImGui::Text("Type: Spot");
+
+			// Direction
+			ImGui::Text("Direction: ");
+			lightDir = lights[index].Direction;
+			lightDirSliderValues[0] = lightDir.x;
+			lightDirSliderValues[1] = lightDir.y;
+			lightDirSliderValues[2] = lightDir.z;
+			ImGui::SliderFloat3(lightDirSliderName.c_str(), lightDirSliderValues, -1.0f, 1.0f);
+			newDir = XMFLOAT3(lightDirSliderValues[0], lightDirSliderValues[1], lightDirSliderValues[2]);
+			lights[index].Direction = newDir;
+
+			// Position
+			ImGui::Text("Position: ");
+			lightPos = lights[index].Position;
+			lightPosSliderValues[0] = lightPos.x;
+			lightPosSliderValues[1] = lightPos.y;
+			lightPosSliderValues[2] = lightPos.z;
+			ImGui::SliderFloat3(lightPosSliderName.c_str(), lightPosSliderValues, -10.0f, 10.0f);
+			newPos = XMFLOAT3(lightPosSliderValues[0], lightPosSliderValues[1], lightPosSliderValues[2]);
+			lights[index].Position = newPos;
+			break;
+		}
+		
+		// Intensity
+		ImGui::Text("Intensity: ");
+		float intensity = lights[index].Intensity;
+
+		// Slider Name & Bounds
+		std::string lightIntensitySliderName = "##Light" + iStr + "Intensity";
+		float f_tenth = 0.1f;
+		float f_three = 3.0f;
+
+		// Slider creation
+		ImGui::SliderScalar(lightIntensitySliderName.c_str(), ImGuiDataType_Float, &intensity, &f_tenth, &f_three);
+		lights[index].Intensity = intensity;
+
+		ImGui::TreePop();
+	}
 }
