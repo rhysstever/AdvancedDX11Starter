@@ -359,6 +359,34 @@ void Game::LoadAssetsAndCreateEntities()
 	entities.push_back(roughSphere);
 	entities.push_back(woodSphere);
 
+	// Create Child-Parent relationships
+
+	for (int e = 0; e < entities.size(); e++) {
+		switch (e)
+		{
+		case 0:
+			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
+			break;
+		case 3:
+			entities[e]->GetTransform()->AddChild(entities[e - 1]->GetTransform());
+			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
+			break;
+		case 6:
+			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
+			break;
+		case 7:
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+		case 12:
+			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
+			break;
+		default:
+			break;
+		}
+	}
+
 	// Save assets needed for drawing point lights
 	// (Since these are just copies of the pointers,
 	//  we won't need to directly delete them as 
@@ -448,6 +476,35 @@ void Game::Update(float deltaTime, float totalTime)
 	Input& input = Input::GetInstance();
 	if (input.KeyDown(VK_ESCAPE)) Quit();
 	if (input.KeyPress(VK_TAB)) GenerateLights();
+
+	for (int e = 0; e < entities.size(); e++) {
+		switch (e)
+		{
+		// The left and rightmost PBR entities rotate
+		// with their child (the adjacent entity)
+		case 0:
+		case 6:
+			entities[e]->GetTransform()->Rotate(0.0f, sinf(deltaTime), 0.0f);
+			break;
+		// The center PBR entity rotates with its 2 adjacent children entities
+		case 3:
+			entities[e]->GetTransform()->Rotate(0.0f, 0.0f, sinf(deltaTime));
+			break;
+		// Each entity on the bottom row moves back and forth down and to the right
+		// Moving its child (the entity to the right) along with it
+		case 7:
+		case 8:
+		case 9:
+		case 10:
+		case 11:
+		case 12:
+		case 13:
+			entities[e]->GetTransform()->MoveRelative(sinf(totalTime) / 50, -sinf(totalTime) / 50, 0.0f);
+			break;
+		default:
+			break;
+		}
+	}
 
 	CreateGUI();
 }
@@ -665,7 +722,6 @@ void Game::CreateGUI()
 			DisplayLightInfo(i);
 		}
 	}
-
 	ImGui::End();
 }
 
@@ -708,6 +764,10 @@ void Game::DisplayEntityInfo(GameEntity* ge, int index)
 		ImGui::SliderFloat3(geScaleSliderName.c_str(), geScaleSliderValues, 0.1, 5.0f);
 		ge->GetTransform()->SetScale(geScaleSliderValues[0], geScaleSliderValues[1], geScaleSliderValues[2]);
 		
+		// Children
+		std::string childCount = std::to_string(ge->GetTransform()->GetChildCount());
+		std::string childCountNode = childCount + " child(ren)";
+		ImGui::Text(childCountNode.c_str());
 		ImGui::TreePop();
 	}
 }

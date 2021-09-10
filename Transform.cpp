@@ -103,11 +103,11 @@ DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix()
 
 void Transform::AddChild(Transform* child)
 {
-	// If the newly added child is null or 
-	// is already in the list, nothing happens
+	// If the new child is null 
 	if (child == NULL(0))
 		return;
 
+	// If the new child is already in the list
 	for (int i = 0; i < children.size(); i++) {
 		if (children[i] == child)
 			return;
