@@ -78,6 +78,9 @@
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>Source Files\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vertex.h">
@@ -136,6 +139,9 @@
     </ClInclude>
     <ClInclude Include="imstb_truetype.h">
       <Filter>Header Files\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

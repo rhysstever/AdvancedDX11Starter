@@ -49,5 +49,6 @@ private:
 	void UpdateMatrices();
 
 	void MarkChildTransformDirty();
+	void AdjustForParent(bool isBeingAdded);
 };
 

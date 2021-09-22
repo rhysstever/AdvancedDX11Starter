@@ -1,5 +1,9 @@
 #pragma once
 
+#include <DirectXMath.h>
+#include <wrl/client.h> // Used for ComPtr - a smart pointer for COM objects
+#include <vector>
+
 #include "DXCore.h"
 #include "Mesh.h"
 #include "GameEntity.h"
@@ -9,10 +13,7 @@
 #include "SpriteBatch.h"
 #include "Lights.h"
 #include "Sky.h"
-
-#include <DirectXMath.h>
-#include <wrl/client.h> // Used for ComPtr - a smart pointer for COM objects
-#include <vector>
+#include "Renderer.h"
 
 class Game 
 	: public DXCore
@@ -45,6 +46,7 @@ private:
 	std::vector<GameEntity*> entitiesGradient;
 	std::vector<ISimpleShader*> shaders;
 	Camera* camera;
+	Renderer* renderer;
 
 	// Lights
 	std::vector<Light> lights;
@@ -68,8 +70,6 @@ private:
 
 	// General helpers for setup and drawing
 	void GenerateLights();
-	void DrawPointLights();
-	void DrawUI();
 
 	// Initialization helper method
 	void LoadAssetsAndCreateEntities();

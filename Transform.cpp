@@ -16,7 +16,7 @@ Transform::Transform()
 	// No need to recalc yet
 	matricesDirty = false;
 
-	parent = NULL(0);
+	parent = NULL;
 }
 
 void Transform::MoveAbsolute(float x, float y, float z)
@@ -92,6 +92,7 @@ DirectX::XMFLOAT3 Transform::GetScale() { return scale; }
 DirectX::XMFLOAT4X4 Transform::GetWorldMatrix()
 {
 	UpdateMatrices();
+
 	return worldMatrix;
 }
 
@@ -104,7 +105,7 @@ DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix()
 void Transform::AddChild(Transform* child)
 {
 	// If the new child is null 
-	if (child == NULL(0))
+	if (child == NULL)
 		return;
 
 	// If the new child is already in the list
@@ -116,6 +117,8 @@ void Transform::AddChild(Transform* child)
 	// Add the new child
 	children.push_back(child);
 
+	child->AdjustForParent(true);
+
 	// Set the new child's parent
 	child->parent = this;
 
@@ -126,6 +129,7 @@ void Transform::RemoveChild(Transform* child)
 {
 	children.erase(children.begin() + IndexOfChild(child));
 
+	child->AdjustForParent(false);
 	MarkChildTransformDirty();
 }
 
@@ -135,7 +139,7 @@ void Transform::SetParent(Transform* newParent)
 	parent = newParent;
 
 	// If the new parent is not null, add *this* Transform to its list of children
-	if (newParent != NULL(0)) {
+	if (newParent != NULL) {
 		newParent->AddChild(this);
 		this->matricesDirty = true;
 	}
@@ -150,9 +154,9 @@ Transform* Transform::GetParent()
 
 Transform* Transform::GetChild(unsigned int index)
 {
-	// Returns null(0) if the index is out of bounds of the children vector
+	// Returns null if the index is out of bounds of the children vector
 	if (index < 0 || index >= children.size())
-		return NULL(0);
+		return NULL;
 	
 	return children[index];
 }
@@ -186,6 +190,13 @@ void Transform::UpdateMatrices()
 
 		// Combine and store the world
 		XMMATRIX wm = sc * rot * trans;
+
+		if (parent != NULL)
+		{
+			XMMATRIX parentWorldMat = XMLoadFloat4x4(&parent->GetWorldMatrix());
+			wm = XMMatrixMultiply(wm, parentWorldMat);
+		}
+
 		XMStoreFloat4x4(&worldMatrix, wm);
 
 		// Invert and transpose, too
@@ -193,6 +204,7 @@ void Transform::UpdateMatrices()
 
 		// All set
 		matricesDirty = false;
+		MarkChildTransformDirty();
 	}
 }
 
@@ -202,5 +214,44 @@ void Transform::MarkChildTransformDirty()
 	for (auto c : children)
 	{
 		c->MarkChildTransformDirty();
+	}
+}
+
+void Transform::AdjustForParent(bool isBeingAdded)
+{
+	// Ensure there is a parent to be adjusted against
+	if (parent == NULL)
+		return;
+
+	// Scale ============================
+	// If the child is being added to the parent, 
+	// it need to be scaled DOWN by the scale of the parent, 
+	// if the child is being removed from the parent, 
+	// its scaled needs to be reverted
+	if (isBeingAdded)
+		this->Scale(1 / parent->scale.x, 1 / parent->scale.y, 1 / parent->scale.z);
+	else
+		this->Scale(parent->scale.x, parent->scale.y, parent->scale.z);
+
+	// Position ====================
+	// If the child is being added to the parent, 
+	// its parent's position needs to be subtracted from the child's 
+	// if the child is being removed from the parent, 
+	// its parent's position needs to be added
+	if (isBeingAdded)
+		this->MoveRelative(-parent->position.x, -parent->position.y, -parent->position.z);
+	else
+		this->MoveRelative(parent->position.x, parent->position.y, parent->position.z);
+}
+
+void DescaleFromParent(Transform* parent)
+{
+	if (parent->GetParent() != NULL)
+	{
+
+	}
+	else
+	{
+		 
 	}
 }

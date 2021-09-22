@@ -81,6 +81,7 @@ Game::~Game()
 	for (auto& e : entities) delete e;
 
 	// Delete any one-off objects
+	delete renderer;
 	delete sky;
 	delete camera;
 	delete arial;
@@ -129,7 +130,6 @@ void Game::Init()
 	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX11_Init(device.Get(), context.Get());
 }
-
 
 // --------------------------------------------------------
 // Load all assets and create materials, entities, etc.
@@ -287,32 +287,12 @@ void Game::LoadAssetsAndCreateEntities()
 
 	// === Create the PBR entities =====================================
 	GameEntity* cobSpherePBR = new GameEntity(sphereMesh, cobbleMat2xPBR);
-	cobSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	cobSpherePBR->GetTransform()->SetPosition(-6, 2, 0);
-
 	GameEntity* floorSpherePBR = new GameEntity(sphereMesh, floorMatPBR);
-	floorSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	floorSpherePBR->GetTransform()->SetPosition(-4, 2, 0);
-
 	GameEntity* paintSpherePBR = new GameEntity(sphereMesh, paintMatPBR);
-	paintSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	paintSpherePBR->GetTransform()->SetPosition(-2, 2, 0);
-
 	GameEntity* scratchSpherePBR = new GameEntity(sphereMesh, scratchedMatPBR);
-	scratchSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	scratchSpherePBR->GetTransform()->SetPosition(0, 2, 0);
-
 	GameEntity* bronzeSpherePBR = new GameEntity(sphereMesh, bronzeMatPBR);
-	bronzeSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	bronzeSpherePBR->GetTransform()->SetPosition(2, 2, 0);
-
 	GameEntity* roughSpherePBR = new GameEntity(sphereMesh, roughMatPBR);
-	roughSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	roughSpherePBR->GetTransform()->SetPosition(4, 2, 0);
-
 	GameEntity* woodSpherePBR = new GameEntity(sphereMesh, woodMatPBR);
-	woodSpherePBR->GetTransform()->SetScale(2, 2, 2);
-	woodSpherePBR->GetTransform()->SetPosition(6, 2, 0);
 
 	entities.push_back(cobSpherePBR);
 	entities.push_back(floorSpherePBR);
@@ -324,32 +304,12 @@ void Game::LoadAssetsAndCreateEntities()
 
 	// Create the non-PBR entities ==============================
 	GameEntity* cobSphere = new GameEntity(sphereMesh, cobbleMat2x);
-	cobSphere->GetTransform()->SetScale(2, 2, 2);
-	cobSphere->GetTransform()->SetPosition(-6, -2, 0);
-
 	GameEntity* floorSphere = new GameEntity(sphereMesh, floorMat);
-	floorSphere->GetTransform()->SetScale(2, 2, 2);
-	floorSphere->GetTransform()->SetPosition(-4, -2, 0);
-
 	GameEntity* paintSphere = new GameEntity(sphereMesh, paintMat);
-	paintSphere->GetTransform()->SetScale(2, 2, 2);
-	paintSphere->GetTransform()->SetPosition(-2, -2, 0);
-
 	GameEntity* scratchSphere = new GameEntity(sphereMesh, scratchedMat);
-	scratchSphere->GetTransform()->SetScale(2, 2, 2);
-	scratchSphere->GetTransform()->SetPosition(0, -2, 0);
-
 	GameEntity* bronzeSphere = new GameEntity(sphereMesh, bronzeMat);
-	bronzeSphere->GetTransform()->SetScale(2, 2, 2);
-	bronzeSphere->GetTransform()->SetPosition(2, -2, 0);
-
 	GameEntity* roughSphere = new GameEntity(sphereMesh, roughMat);
-	roughSphere->GetTransform()->SetScale(2, 2, 2);
-	roughSphere->GetTransform()->SetPosition(4, -2, 0);
-
 	GameEntity* woodSphere = new GameEntity(sphereMesh, woodMat);
-	woodSphere->GetTransform()->SetScale(2, 2, 2);
-	woodSphere->GetTransform()->SetPosition(6, -2, 0);
 
 	entities.push_back(cobSphere);
 	entities.push_back(floorSphere);
@@ -359,8 +319,22 @@ void Game::LoadAssetsAndCreateEntities()
 	entities.push_back(roughSphere);
 	entities.push_back(woodSphere);
 
-	// Create Child-Parent relationships
+	// Set starting positions =====
+	// PBR entities
+	cobSpherePBR->GetTransform()->SetPosition(-6, 2, 0);
+	floorSpherePBR->GetTransform()->SetPosition(1, 0, 0);
 
+	paintSpherePBR->GetTransform()->SetPosition(-1, 0, 0);
+	scratchSpherePBR->GetTransform()->SetPosition(0, 2, 0);
+	bronzeSpherePBR->GetTransform()->SetPosition(1, 0, 0);
+
+	roughSpherePBR->GetTransform()->SetPosition(-1, 0, 0);
+	woodSpherePBR->GetTransform()->SetPosition(6, 2, 0);
+
+	// Non-PBR entities
+	cobSphere->GetTransform()->SetPosition(-6, -2, 0);
+
+	// Create Child-Parent relationships
 	for (int e = 0; e < entities.size(); e++) {
 		switch (e)
 		{
@@ -372,7 +346,7 @@ void Game::LoadAssetsAndCreateEntities()
 			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
 			break;
 		case 6:
-			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
+			entities[e]->GetTransform()->AddChild(entities[e - 1]->GetTransform());
 			break;
 		case 7:
 		case 8:
@@ -380,10 +354,23 @@ void Game::LoadAssetsAndCreateEntities()
 		case 10:
 		case 11:
 		case 12:
-			entities[e]->GetTransform()->AddChild(entities[e + 1]->GetTransform());
+		case 13:
+			entities[e]->GetTransform()->SetScale(2, 2, 2);
+			entities[e]->GetTransform()->SetPosition(-6 + (e - 7) * 2, -2, 0);
+
+			/*if(e > 7)
+				entities[e]->GetTransform()->SetParent(entities[e - 1]->GetTransform());*/
 			break;
 		default:
 			break;
+		}
+
+		// Scales any entities that are sole parents entities to 2x
+		for (auto ge : entities)
+		{
+			if(ge->GetTransform()->GetChildCount() > 0 &&
+				ge->GetTransform()->GetParent() == NULL)
+				ge->GetTransform()->SetScale(2, 2, 2);
 		}
 	}
 
@@ -394,8 +381,22 @@ void Game::LoadAssetsAndCreateEntities()
 	lightMesh = sphereMesh;
 	lightVS = vertexShader;
 	lightPS = solidColorPS;
-}
 
+	// Create the renderer
+	renderer = new Renderer(
+		device,
+		context,
+		swapChain,
+		backBufferRTV,
+		depthStencilView,
+		width,
+		height,
+		sky,
+		entities,
+		lights, 
+		lightVS,
+		lightPS);
+}
 
 // --------------------------------------------------------
 // Generates the lights in the scene: 3 directional lights
@@ -446,8 +447,6 @@ void Game::GenerateLights()
 
 }
 
-
-
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.
 // For instance, updating our projection matrix's aspect ratio.
@@ -460,6 +459,9 @@ void Game::OnResize()
 	// Update our projection matrix to match the new aspect ratio
 	if (camera)
 		camera->UpdateProjectionMatrix(this->width / (float)this->height);
+
+	// Update renderer
+	renderer->PostResize(width, height, backBufferRTV, depthStencilView);
 }
 
 // --------------------------------------------------------
@@ -499,7 +501,7 @@ void Game::Update(float deltaTime, float totalTime)
 		case 11:
 		case 12:
 		case 13:
-			entities[e]->GetTransform()->MoveRelative(sinf(totalTime) / 50, -sinf(totalTime) / 50, 0.0f);
+			//entities[e]->GetTransform()->MoveRelative(sinf(totalTime) / 50, -sinf(totalTime) / 50, 0.0f);
 			break;
 		default:
 			break;
@@ -514,148 +516,7 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
-	// Background color for clearing
-	const float color[4] = { 0, 0, 0, 1 };
-
-	// Clear the render target and depth buffer (erases what's on the screen)
-	//  - Do this ONCE PER FRAME
-	//  - At the beginning of Draw (before drawing *anything*)
-	context->ClearRenderTargetView(backBufferRTV.Get(), color);
-	context->ClearDepthStencilView(
-		depthStencilView.Get(),
-		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-		1.0f,
-		0);
-
-
-	// Draw all of the entities
-	for (auto ge : entities)
-	{
-		// Set the "per frame" data
-		// Note that this should literally be set once PER FRAME, before
-		// the draw loop, but we're currently setting it per entity since 
-		// we are just using whichever shader the current entity has.  
-		// Inefficient!!!
-		SimplePixelShader* ps = ge->GetMaterial()->GetPS();
-		ps->SetData("Lights", (void*)(&lights[0]), sizeof(Light) * lightCount);
-		ps->SetInt("LightCount", lightCount);
-		ps->SetFloat3("CameraPosition", camera->GetTransform()->GetPosition());
-		ps->CopyBufferData("perFrame");
-
-		// Draw the entity
-		ge->Draw(context, camera);
-	}
-
-	// Draw the light sources
-	DrawPointLights();
-
-	// Draw the sky
-	sky->Draw(camera);
-
-	// Draw some UI
-	DrawUI();
-
-	// Draw ImGui
-	ImGui::Render();
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-	// Present the back buffer to the user
-	//  - Puts the final frame we're drawing into the window so the user can see it
-	//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)
-	swapChain->Present(0, 0);
-
-	// Due to the usage of a more sophisticated swap chain,
-	// the render target must be re-bound after every call to Present()
-	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthStencilView.Get());
-}
-
-
-// --------------------------------------------------------
-// Draws the point lights as solid color spheres
-// --------------------------------------------------------
-void Game::DrawPointLights()
-{
-	// Turn on these shaders
-	lightVS->SetShader();
-	lightPS->SetShader();
-
-	// Set up vertex shader
-	lightVS->SetMatrix4x4("view", camera->GetView());
-	lightVS->SetMatrix4x4("projection", camera->GetProjection());
-
-	for (int i = 0; i < lightCount; i++)
-	{
-		Light light = lights[i];
-
-		// Only drawing points, so skip others
-		if (light.Type != LIGHT_TYPE_POINT)
-			continue;
-
-		// Calc quick scale based on range
-		// (assuming range is between 5 - 10)
-		float scale = light.Range / 10.0f;
-
-		// Make the transform for this light
-		XMMATRIX rotMat = XMMatrixIdentity();
-		XMMATRIX scaleMat = XMMatrixScaling(scale, scale, scale);
-		XMMATRIX transMat = XMMatrixTranslation(light.Position.x, light.Position.y, light.Position.z);
-		XMMATRIX worldMat = scaleMat * rotMat * transMat;
-
-		XMFLOAT4X4 world;
-		XMFLOAT4X4 worldInvTrans;
-		XMStoreFloat4x4(&world, worldMat);
-		XMStoreFloat4x4(&worldInvTrans, XMMatrixInverse(0, XMMatrixTranspose(worldMat)));
-
-		// Set up the world matrix for this light
-		lightVS->SetMatrix4x4("world", world);
-		lightVS->SetMatrix4x4("worldInverseTranspose", worldInvTrans);
-
-		// Set up the pixel shader data
-		XMFLOAT3 finalColor = light.Color;
-		finalColor.x *= light.Intensity;
-		finalColor.y *= light.Intensity;
-		finalColor.z *= light.Intensity;
-		lightPS->SetFloat3("Color", finalColor);
-
-		// Copy data
-		lightVS->CopyAllBufferData();
-		lightPS->CopyAllBufferData();
-
-		// Draw
-		lightMesh->SetBuffersAndDraw(context);
-	}
-
-}
-
-
-// --------------------------------------------------------
-// Draws a simple informational "UI" using sprite batch
-// --------------------------------------------------------
-void Game::DrawUI()
-{
-	spriteBatch->Begin();
-
-	// Basic controls
-	float h = 10.0f;
-	arial->DrawString(spriteBatch, L"Controls:", XMVectorSet(10, h, 0, 0));
-	arial->DrawString(spriteBatch, L" (WASD, X, Space) Move camera", XMVectorSet(10, h + 20, 0, 0));
-	arial->DrawString(spriteBatch, L" (Left Click & Drag) Rotate camera", XMVectorSet(10, h + 40, 0, 0));
-	arial->DrawString(spriteBatch, L" (Left Shift) Hold to speed up camera", XMVectorSet(10, h + 60, 0, 0));
-	arial->DrawString(spriteBatch, L" (Left Ctrl) Hold to slow down camera", XMVectorSet(10, h + 80, 0, 0));
-	arial->DrawString(spriteBatch, L" (TAB) Randomize lights", XMVectorSet(10, h + 100, 0, 0));
-
-	// Current "scene" info
-	h = 150;
-	arial->DrawString(spriteBatch, L"Scene Details:", XMVectorSet(10, h, 0, 0));
-	arial->DrawString(spriteBatch, L" Top: PBR materials", XMVectorSet(10, h + 20, 0, 0));
-	arial->DrawString(spriteBatch, L" Bottom: Non-PBR materials", XMVectorSet(10, h + 40, 0, 0));
-
-	spriteBatch->End();
-
-	// Reset render states, since sprite batch changes these!
-	context->OMSetBlendState(0, 0, 0xFFFFFFFF);
-	context->OMSetDepthStencilState(0, 0);
-
+	renderer->Render(camera, lightMesh, arial, spriteBatch);
 }
 
 void Game::GUISetup(float deltaTime)
@@ -766,7 +627,11 @@ void Game::DisplayEntityInfo(GameEntity* ge, int index)
 		
 		// Children
 		std::string childCount = std::to_string(ge->GetTransform()->GetChildCount());
-		std::string childCountNode = childCount + " child(ren)";
+		std::string childCountNode = childCount;
+		if(ge->GetTransform()->GetChildCount() != 1)
+			childCountNode += " children";
+		else
+			childCountNode += " child";
 		ImGui::Text(childCountNode.c_str());
 		ImGui::TreePop();
 	}
