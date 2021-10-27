@@ -72,6 +72,13 @@ void Renderer::Render(Camera* camera, Mesh* lightMesh, DirectX::SpriteFont* aria
 		ps->SetData("Lights", (void*)(&lights[0]), sizeof(Light) * lights.size());
 		ps->SetInt("LightCount", lights.size());
 		ps->SetFloat3("CameraPosition", camera->GetTransform()->GetPosition());
+
+		// Set IBL vars
+		ps->SetShaderResourceView("brdfLookUpMap", sky->GetIBLBRDFLookUpTexture());
+		ps->SetShaderResourceView("irradianceIBLMap", sky->GetIBLIrradianceMap());
+		ps->SetShaderResourceView("specularIBLMap", sky->GetIBLConvolvedSpecularMap());
+		ps->SetInt("SpecIBLTotalMipLevels", sky->GetIBLMipLevelCount());
+
 		ps->CopyBufferData("perFrame");
 
 		// Draw the entity

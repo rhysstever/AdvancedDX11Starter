@@ -1,6 +1,30 @@
 #include "Material.h"
 
-
+Material::Material(
+	SimpleVertexShader* vs,
+	SimplePixelShader* ps,
+	DirectX::XMFLOAT4 color,
+	float shininess,
+	DirectX::XMFLOAT2 uvScale,
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> albedo,
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normals,
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughness,
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metal,
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler,
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> clampSampler)
+{
+	this->vs = vs;
+	this->ps = ps;
+	this->color = color;
+	this->shininess = shininess;
+	this->albedoSRV = albedo;
+	this->normalSRV = normals;
+	this->roughnessSRV = roughness;
+	this->metalSRV = metal;
+	this->sampler = sampler;
+	this->uvScale = uvScale;
+	this->clampSampler = clampSampler;
+}
 
 Material::Material(
 	SimpleVertexShader* vs,
@@ -24,8 +48,8 @@ Material::Material(
 	this->metalSRV = metal;
 	this->sampler = sampler;
 	this->uvScale = uvScale;
+	this->clampSampler = nullptr;
 }
-
 
 Material::~Material()
 {
@@ -58,4 +82,5 @@ void Material::PrepareMaterial(Transform* transform, Camera* cam)
 
 	// Set sampler
 	ps->SetSamplerState("BasicSampler", sampler);
+	ps->SetSamplerState("ClampSampler", clampSampler);
 }

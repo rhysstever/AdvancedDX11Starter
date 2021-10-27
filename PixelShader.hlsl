@@ -39,13 +39,18 @@ struct VertexToPixel
 	float3 worldPos			: POSITION; // The world position of this PIXEL
 };
 
-
 // Texture-related variables
 Texture2D AlbedoTexture			: register(t0);
 Texture2D NormalTexture			: register(t1);
 Texture2D RoughnessTexture		: register(t2);
-SamplerState BasicSampler		: register(s0);
 
+// IBL (indirect PBR) textures
+Texture2D BrdfLookUpMap			: register(t3);
+TextureCube IrradianceIBLMap	: register(t4);
+TextureCube SpecularIBLMap		: register(t5);
+
+SamplerState BasicSampler		: register(s0);
+SamplerState ClampSampler		: register(s1);
 
 // Entry point for this pixel shader
 float4 main(VertexToPixel input) : SV_TARGET

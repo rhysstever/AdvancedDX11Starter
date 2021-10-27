@@ -21,6 +21,18 @@ public:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normals, 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughness, 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metal, 
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler, 
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> clampSampler);
+	Material(
+		SimpleVertexShader* vs,
+		SimplePixelShader* ps,
+		DirectX::XMFLOAT4 color,
+		float shininess,
+		DirectX::XMFLOAT2 uvScale,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> albedo,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normals,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughness,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metal,
 		Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 	~Material();
 
@@ -45,5 +57,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughnessSRV;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSRV;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> clampSampler;
 };
 

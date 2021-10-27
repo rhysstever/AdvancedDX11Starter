@@ -41,9 +41,26 @@ public:
 
 	void Draw(Camera* camera);
 
+	// public IBL methods
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetIBLIrradianceMap();
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetIBLConvolvedSpecularMap();
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetIBLBRDFLookUpTexture();
+	int GetIBLMipLevelCount();
+
 private:
 
 	void InitRenderStates();
+
+	// private IBL methods
+	void IBLCreateIrradianceMap(
+		SimpleVertexShader* fullscreenVS,
+		SimplePixelShader* irradiancePS);
+	void IBLCreateConvolvedSpecularMap(
+		SimpleVertexShader* fullscreenVS,
+		SimplePixelShader* specularConvolvedPS);
+	void IBLCreateBRDFLookUpTexture(
+		SimpleVertexShader* fullscreenVS,
+		SimplePixelShader* irradiancePS);
 
 	// Helper for creating a cubemap from 6 individual textures
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CreateCubemap(
@@ -67,5 +84,14 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
+
+	// For IBL
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> IBLIrradianceCubeMap;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> IBLConvolvedSpecularCubeMap;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> BRDFLookUpTexture;
+	int totalIBLSpecularMapMipLevels;
+	const int IBLSpecularMipLevelsToSkip = 3;
+	const int IBLCubeMapFaceSize = 256;
+	const int LookUpTextureSize = 256;
 };
 

@@ -64,6 +64,7 @@ private:
 
 	// Texture related resources
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptionsPBR;
 
 	// Skybox
 	Sky* sky;

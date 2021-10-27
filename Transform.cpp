@@ -193,7 +193,8 @@ void Transform::UpdateMatrices()
 
 		if (parent != NULL)
 		{
-			XMMATRIX parentWorldMat = XMLoadFloat4x4(&parent->GetWorldMatrix());
+			DirectX::XMFLOAT4X4 parentVal = parent->GetWorldMatrix();
+			XMMATRIX parentWorldMat = XMLoadFloat4x4(&parentVal);
 			wm = XMMatrixMultiply(wm, parentWorldMat);
 		}
 
